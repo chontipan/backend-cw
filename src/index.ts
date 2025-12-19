@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 
 const app = new Hono()
 
+// Enable CORS for browser-based frontend (adjust origin as needed)
 app.use('*', cors({
   origin: '*',
   allowHeaders: ['Content-Type', 'Authorization'],
@@ -48,11 +49,12 @@ app.post('/items', async (c) => {
     const description = body.description ?? null
     if (!title) return c.json({ error: 'title is required' }, 400)
     const db = getDb(c)
-    const r = await db.prepare('INSERT INTO items (title, description) VALUES (?, ?)').bind(title, description).run()
-    const id = r?.lastInsertRowid || null
-    if (!id) return c.json({ error: 'Insert failed' }, 500)
-    const created = await db.prepare('SELECT * FROM items WHERE id = ?').bind(id).all()
-    return c.json((created.results && created.results[0]) || null, 201)
+    await db.prepare('INSERT INTO items (title, description) VALUES (?, ?)').bind(title, description).run()
+    // Use SQLite last_insert_rowid() to get the row inserted by this connection
+    const created = await db.prepare('SELECT * FROM items WHERE id = last_insert_rowid()').all()
+    const item = (created.results && created.results[0]) || null
+    if (!item) return c.json({ error: 'Insert failed' }, 500)
+    return c.json(item, 201)
   } catch (err: any) {
     return c.json({ error: err?.message || String(err) }, 500)
   }
@@ -63,11 +65,22 @@ app.put('/items/:id', async (c) => {
   try {
     const id = Number(c.req.param('id'))
     const body = await c.req.json()
-    const title = body.title
-    const description = body.description ?? null
-    if (!title) return c.json({ error: 'title is required' }, 400)
     const db = getDb(c)
-    await db.prepare('UPDATE items SET title = ?, description = ? WHERE id = ?').bind(title, description, id).run()
+    // Build dynamic SET clause to allow partial updates
+    const fields: string[] = []
+    const params: any[] = []
+    if (Object.prototype.hasOwnProperty.call(body, 'title')) {
+      fields.push('title = ?')
+      params.push(body.title)
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'description')) {
+      fields.push('description = ?')
+      params.push(body.description)
+    }
+    if (fields.length === 0) return c.json({ error: 'No fields to update' }, 400)
+    params.push(id)
+    const sql = `UPDATE items SET ${fields.join(', ')} WHERE id = ?`
+    await db.prepare(sql).bind(...params).run()
     const updated = await db.prepare('SELECT * FROM items WHERE id = ?').bind(id).all()
     const item = (updated.results && updated.results[0]) || null
     if (!item) return c.json({ error: 'Not found' }, 404)
