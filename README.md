@@ -26,6 +26,16 @@ database_id   = "abcd1234-ef56-7890-aaaa-bbbbccccdddd"
 
 
 ### 3. Go to wrangler.jsonc
+### ลบส่วนนี้ออก 
+```
+		{
+			"binding": "my_db",
+			"database_name": "my-db",
+			"database_id": "67c9b4ba-cdb3-4ab4-88f4-f83558db87fe",
+		}
+```
+
+### แล้วเพิ่มข้อมูลที่ได้จากสเต็ปก่อนหน้าเข้าไปแทนที่ ดังนี้
 ```
 "d1_databases": [
   {
