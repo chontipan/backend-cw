@@ -6,8 +6,8 @@
 	"d1_databases": [
 		{
 			"binding": "my_db",
-			"database_name": "my-db",
-			"database_id": "67c9b4ba-cdb3-4ab4-88f4-f83558db87fe",
+			"database_name": "my_db",
+			"database_id": "348e6d23-4a67-44e0-a3bd-8b467c0e4534"
 		}
 	]
 	// "compatibility_flags": [
